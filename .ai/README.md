@@ -4,10 +4,10 @@ This document provides comprehensive technical guidance for integrating AI code 
 
 > **📋 Terminology Note**: DevPod implements a two-level configuration system that maps to AI assistant standards as follows:
 > - **DevPod "System-Wide"** → AI recognizes as **"User Level"** (upstream defaults)
-> - **DevPod "Workspace-Level"** → AI recognizes as **"Project Level"** (environment customizations)  
-> 
+> - **DevPod "Workspace-Level"** → AI recognizes as **"Project Level"** (environment customizations)
+>
 > Repository-level configs are outside DevPod's scope but can be recognized by AI assistants based on their working directory context.
-> 
+>
 > This design provides seamless AI integration while maintaining organized, version-controlled development environments.
 
 ## Overview
@@ -20,16 +20,16 @@ DevPod supports multiple AI assistants through a sophisticated two-level configu
 ## Architecture: Two-Level Configuration System
 
 ### Level 1: System-Wide Defaults (Upstream/Version Controlled)
-**Location**: `.ai/{assistant}/`  
-**Mount Target**: `/home/user/.{assistant}/` (Recognized by AI as "User Level")  
-**Purpose**: DevPod-shipped configurations, maintained via upstream updates  
-**Control**: Managed by DevPod team, customizable via your fork's git configuration  
+**Location**: `.ai/{assistant}/`
+**Mount Target**: `/home/user/.{assistant}/` (Recognized by AI as "User Level")
+**Purpose**: DevPod-shipped configurations, maintained via upstream updates
+**Control**: Managed by DevPod team, customizable via your fork's git configuration
 
 ### Level 2: Workspace-Level Customizations (Your Environment)
-**Location**: `workspace-ai/{assistant}/`  
-**Mount Target**: `/mnt/workspace/.{assistant}/` (Recognized by AI as "Project Level")  
-**Purpose**: Your development environment customizations across all projects  
-**Control**: Fully managed by you, version controlled with your DevPod repository  
+**Location**: `workspace-ai/{assistant}/`
+**Mount Target**: `/mnt/workspace/.{assistant}/` (Recognized by AI as "Project Level")
+**Purpose**: Your development environment customizations across all projects
+**Control**: Fully managed by you, version controlled with your DevPod repository
 
 > **💡 Note on Repository-Level Configs**: While not part of DevPod's configuration system, AI assistants can recognize repository-specific configs (like `.claude/` or `.gemini/` directories) when invoked from within individual repository directories in `workspace/`. This behavior depends on the AI assistant's working directory context and is handled outside DevPod's scope.
 
@@ -49,11 +49,11 @@ The devcontainer implements strategic bind mounts as defined in `devcontainer.js
 "mounts": [
   // Authentication & core config persistence
   "source=devpod-home,target=/home/user/,type=volume",
-  
+
   // System-level AI configurations (upstream)
   "source=${localWorkspaceFolder}/.ai/claude/,target=/home/user/.claude/,type=bind",
   "source=${localWorkspaceFolder}/.ai/gemini/,target=/home/user/.gemini/,type=bind",
-  
+
   // Project-level AI configurations (user customization)
   "source=${localWorkspaceFolder}/workspace-ai/claude/,target=/mnt/workspace/.claude/,type=bind",
   "source=${localWorkspaceFolder}/workspace-ai/gemini/,target=/mnt/workspace/.gemini/,type=bind"
@@ -78,7 +78,7 @@ Ensure your devcontainer configuration follows the **[.devcontainer/README.md](.
 The system-level configuration directories (`.ai/claude/`, `.ai/gemini/`) are **shipped with DevPod** and maintained upstream. These contain:
 
 - `agents/` - AI assistant profiles and configurations
-- `commands/` - Structured AI workflows  
+- `commands/` - Structured AI workflows
 - `mcp/` - Model Context Protocol integrations
 - `CLAUDE.md` or `GEMINI.md` - System-level memory/context files
 
@@ -163,8 +163,9 @@ claude mcp list
 AI CLI tools are automatically installed via postCreateCommand hooks:
 ```json
 "postCreateCommand": {
-  "npm-install-claude": "npm install -g @anthropic-ai/claude-code",
-  "npm-install-gemini": "npm install -g @google/gemini-cli"
+  "install-claude": "npm install -g @anthropic-ai/claude-code",
+  "install-gemini": "npm install -g @google/gemini-cli",
+  "install-opencode": "cd ~ && curl -fsSL https://opencode.ai/install | bash"
 }
 ```
 
@@ -296,15 +297,14 @@ DevPod/
 
 #### Permission Issues
 **Symptom**: AI tools cannot access configuration files
-**Solution**: 
+**Solution**:
 ```bash
 # Rebuild container to reset permissions
 # Command: "Dev Containers: Rebuild Container"
 
-# Or manually fix npm permissions (handled by npm-fix)
-mkdir -p /tmp/npm/.npm-global
-sudo chown -R user:user /usr/local /tmp/npm/.npm-global
-npm config set prefix /tmp/npm/.npm-global
+# Or check npm permissions (npm is configured to use /opt)
+npm config get prefix  # Should show /opt
+ls -la /opt/  # Should be owned by user
 ```
 
 #### Mount Point Issues

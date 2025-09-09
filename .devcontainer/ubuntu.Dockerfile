@@ -1,11 +1,17 @@
 FROM ubuntu:noble
 
-ENV PYTHONUNBUFFERED=1
-ENV TZ=Etc/GMT+3
-ENV DEBIAN_FRONTEND=noninteractive
+SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 
-# Install base OS packages
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    TZ=Etc/GMT+3 \
+    DEBIAN_FRONTEND=noninteractive \
+    LANGUAGE=en_US:en \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
+
+# Install basic OS packages
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     software-properties-common \
     git \
@@ -18,10 +24,12 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
     dirmngr \
     gnupg \
     sudo \
+    locales \
+    npm \
     sqlite3
 
-# [Optional] Install additional OS packages for Python & Odoo v17/v18 development
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
+# [Optional] Install additional OS packages for Python
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     # Python environment and build tools
     python3 \
@@ -62,11 +70,9 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
     libzip-dev \
     # Node.js and frontend tools for RTL support
     nodejs \
-    npm \
     node-less \
     # Font and localization support
     fontconfig \
-    locales \
     # System monitoring and debugging tools
     htop \
     vim \
@@ -103,42 +109,42 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
     python3-xlwt \
     python3-yaml
 
-# Install Node.js packages for frontend development
-RUN npm install -g less less-plugin-clean-css rtlcss
-
-# # Install wkhtmltopdf (required for PDF reports) - separate block as requested
-# RUN apt-get install -y --no-install-recommends \
-#     xfonts-75dpi \
-#     xfonts-base \
-#     xfonts-encodings \
-#     xfonts-utils && \
-#     wget -q https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.jammy_amd64.deb && \
-#     dpkg -i wkhtmltox_0.12.6.1-3.jammy_amd64.deb || apt-get install -f -y && \
-#     rm wkhtmltox_0.12.6.1-3.jammy_amd64.deb && \
-#     ln -sf /usr/local/bin/wkhtmltopdf /usr/bin/ && \
-#     ln -sf /usr/local/bin/wkhtmltoimage /usr/bin/
-
 # Clean up package cache
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Generate locales for international support
-RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
-    locale-gen
-
-ENV LANG=en_US.UTF-8
-ENV LANGUAGE=en_US:en
-ENV LC_ALL=en_US.UTF-8
+RUN sed -i "/${LANG}/s/^# //g" /etc/locale.gen && locale-gen
 
 # Create user and directories
 RUN useradd -m --home-dir /home/user -s /bin/bash user && \
     echo "user:user" | chpasswd && \
     usermod -aG sudo user
 
+# Create /opt directories for user-managed packages
+RUN mkdir -p /opt && \
+    chown -R user:user /opt
+
+# Create workspace directory with proper permissions
+RUN mkdir -p /mnt/workspace && \
+    chown -R user:user /mnt/workspace
+
 USER user
 
-COPY --chown=user:user ./workspace /mnt/workspace
-# Fix ownership after copying
-RUN chown -R user:user /mnt/workspace
+# Add global opt bin to PATH
+ENV PATH="/opt/bin:$PATH"
+
+# Configure npm to use /opt/npm for global packages
+RUN npm config set prefix "/opt"
+
+# Install Node.js version manager and upgrade Node.js
+ENV N_PREFIX="/opt"
+RUN npm install -g n && n 20
+
+# Install Node.js packages for frontend development
+RUN npm install -g less less-plugin-clean-css rtlcss
+
+# Install UV directly to /opt/bin for system-wide access
+RUN curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR="/opt/bin" sh
 
 WORKDIR /mnt/workspace

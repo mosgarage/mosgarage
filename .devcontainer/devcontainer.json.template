@@ -38,10 +38,34 @@
 	// OPTION 3: Public Docker Image (Fastest startup, pre-built images)
 	// Uncomment to use a public image directly (no custom builds)
 	// "image": "mcr.microsoft.com/devcontainers/python:3.11",              // Python environment
-	// "image": "mcr.microsoft.com/devcontainers/ubuntu:22.04",             // Ubuntu environment
-	// "image": "mcr.microsoft.com/devcontainers/javascript-node:18",       // Node.js environment
+	// "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",        // Ubuntu environment
+	// "image": "mcr.microsoft.com/devcontainers/javascript-node:20",       // Node.js environment
 	// "image": "mcr.microsoft.com/devcontainers/java:17",                  // Java environment
 	// "image": "mcr.microsoft.com/devcontainers/go:1.20",                  // Go environment
+
+	// IMPORTANT: Configuration requirements for all options
+	// For OPTION 1: DevPod's pre-configured docker-compose files already include these settings
+	//              If using your own custom docker-compose, ensure the image is properly configured
+	// For OPTION 2 & 3: Follow these steps unless your image already includes them:
+	//   1. Mount workspace: search for "workspace mounting" in this file
+	//   2. Install npm: search for "install-npm" if your image doesn't include it
+	//   3. Setup npm writable path: search for "setup-npm" to configure /opt/bin
+	//   Note: DevPod's pre-configured images already have npm and writable paths at /opt/bin
+	//   Best practice: Use 'user' account as everything is pre-configured for non-root usage
+	//
+	// Container user configuration (each image has its own default user):
+	//   - Microsoft images typically default to 'vscode' or 'node' users
+	//   - Ubuntu/Debian base images default to 'root'
+	//   - Custom images use whatever is specified in their Dockerfile
+	// When changing the username, update all user-specific paths in commands below
+	"containerUser": "user",  // User for container processes
+	"remoteUser": "user",     // User for VS Code connection
+
+	// Uncomment to limit resource usage (ONLY works for OPTION 2 & OPTION 3: native single-container devcontainers using "dockerFile" or "image")
+	// "runArgs": [
+	// 	"--memory=2g",
+	// 	"--cpus=2"
+	// ],
 
 	// Container workspace path - where your project files will be mounted
 	"workspaceFolder": "/mnt/workspace",
@@ -49,16 +73,13 @@
 	// =============================================================================
 	// Port Forwarding Configuration
 	// =============================================================================
-	// Forward these ports from container to host for AI extension compatibility
+	// Forward ports from container to host for your application
 	"forwardPorts": [
-		// 11434,  // Continue/AI extension compatibility
-		// 1234    // LM Studio/AI compatibility
-		// 5272 // Microsoft AI Toolkit extension (uncomment if needed)
-		// 54112 // CodeGPT/AI extension (uncomment if needed)
+		// Add ports as needed for your development services
 	],
 	"portsAttributes": {
 		"*": {
-			"autoForward": "off"
+			"onAutoForward": "ignore"
 		}
   	},
 
@@ -67,20 +88,13 @@
 	// =============================================================================
 	"customizations": {
 		"vscode": {
-			// Essential extensions for this development environment
+			// Essential extensions for this development environment (customize as needed & rebuild)
+			// Note: If `~/` is persisted as a named volume, changes won't reflect unless you remove `~/.vscode-server`
 			"extensions": [
-				"anthropic.claude-code",                  // Claude Code for VSCode extension
-				"Google.geminicodeassist",                // Gemini for VSCode extension
-				"ms-python.python"                        // Python language support
-				// Optional extensions (uncomment as needed):
-				// "ms-ossdata.vscode-postgresql", // PostgreSQL database tools
-				// "ms-toolsai.jupyter"           // Jupyter notebook support
+				"Anthropic.claude-code"
+				// "ms-python.python",
+				// "ms-toolsai.jupyter"
 			]
-			// Project-specific VS Code settings can be added here:
-			// "settings": {
-			//     "python.defaultInterpreterPath": "/usr/local/bin/python",
-			//     "python.formatting.provider": "black"
-			// }
 		}
 	},
 
@@ -89,20 +103,24 @@
 	// =============================================================================
 	// These commands handle AI Code Assistant setup and permission management
 
-	// postCreateCommand: Runs INSIDE container after it's created
-	// Sets up container-side AI Code Assistant configuration
+	// Environment variables and lifecycle hooks for container initialization
+	// These ensure AI assistants and development tools are properly configured
 	"remoteEnv": {
-		"PATH": "/tmp/npm/.npm-global/bin:${containerEnv:PATH}"
+		// Uncomment when using setup-npm with custom images (adds /opt/bin to PATH)
+		// "PATH": "/opt/bin:${containerEnv:PATH}",
+		// "N_PREFIX": "/opt"
 	},
 	"onCreateCommand": {
-		"user-fix": "sudo chown -R user:user /home/user/",
-		"npm-fix": "mkdir -p /tmp/npm/.npm-global && sudo chown -R user:user /usr/local /tmp/npm/.npm-global && npm config set prefix /tmp/npm/.npm-global && export PATH=/tmp/npm/.npm-global/bin:$PATH"
+		// Uncomment install-npm if your image doesn't include npm by default
+		// "install-npm": "command -v npm >/dev/null 2>&1 || (export DEBIAN_FRONTEND=noninteractive && sudo apt-get update && sudo apt-get install -y --no-install-recommends npm) || true"
 	},
 	"postCreateCommand": {
-		"node-upgrade": "npm install -g n && n 20",
-		"npm-install-claude": "npm install -g @anthropic-ai/claude-code",  					// Claude Code as terminal cli
-		"npm-install-gemini": "npm install -g @google/gemini-cli", 							// Gemini as terminal cli
-		"curl-install-opencode": "cd ~ && curl -fsSL https://opencode.ai/install | bash",   // OpenCode as terminal cli
+		// Uncomment setup-npm when using custom images without pre-configured npm (also uncomment remoteEnv above)
+		// This creates a user-writable npm path at /opt/bin and upgrades to Node.js 20
+		// "setup-npm": "sudo mkdir -p /opt && sudo chown -R user:user /opt && npm config set prefix '/opt' && npm install -g n && n 20",
+		"install-claude": "npm install -g @anthropic-ai/claude-code",  					// Claude Code CLI for terminal usage
+		"install-gemini": "npm install -g @google/gemini-cli", 							// Gemini CLI for terminal usage
+		"install-opencode": "cd ~ && curl -fsSL https://opencode.ai/install | bash",    // OpenCode CLI for terminal usage
 		"create-local-bin": "mkdir -p /home/user/.local/bin",
 		"setup-claude-mcp-reload-script": "printf '%s\n' '#!/bin/sh' 'for dir in ~/.claude/mcp/*/; do' '  [ -d \"$dir\" ] && [ -f \"$dir/config.json\" ] && {' '    claude mcp remove \"$(basename \"$dir\")\" -s user 2>/dev/null' '    claude mcp add-json \"$(basename \"$dir\")\" \"$(cat \"$dir/config.json\")\" -s user' '  }' 'done 2>/dev/null' 'claude mcp list' > /home/user/.local/bin/reload-dp-claude-mcp && chmod +x /home/user/.local/bin/reload-dp-claude-mcp"
 	},
@@ -112,9 +130,11 @@
 	// =============================================================================
 	// These bind mounts persist AI Code configuration between container rebuilds
 	"mounts": [
-		// Most AI Code Authentication & Configuration in `~/` = /home/user/
+		// Uncomment for OPTION 2 & 3: Mount workspace when using custom Dockerfile or public image
+		// "source=${localWorkspaceFolder}/workspace/,target=/mnt/workspace/,type=bind",
+		// Persistent home directory for AI authentication & user configuration
 		"source=devpod-home,target=/home/user/,type=volume",
-		// Maps local .ai/* files to container locations for seamless AI integration & custom commands \ agents
+		// Bind mounts for AI configurations: maps local .ai/* files to container for seamless integration
 		"source=${localWorkspaceFolder}/.ai/claude/,target=/home/user/.claude/,type=bind", // Claude AI - DevPod upstream (Recognized as User Level)
 		"source=${localWorkspaceFolder}/.ai/gemini/,target=/home/user/.gemini/,type=bind", // Gemini AI - DevPod upstream (Recognized as User Level)
 
@@ -126,11 +146,6 @@
 	// Container Features & Tools
 	// =============================================================================
 	"features": {
-		// Claude Code Integration
-		// Installs Anthropic's Claude Code CLI for AI-assisted development
-		// Documentation: https://github.com/anthropics/claude-code
-		"ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
-
 		// Enhanced Shell Environment
 		// Provides a better development experience with modern shell tools
 		"ghcr.io/devcontainers/features/common-utils:2": {

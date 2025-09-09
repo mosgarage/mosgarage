@@ -1,11 +1,17 @@
 FROM ubuntu:noble
 
-ENV PYTHONUNBUFFERED=1
-ENV TZ=Etc/GMT+3
-ENV DEBIAN_FRONTEND=noninteractive
+SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 
-# [Optional] Uncomment this section to install additional OS packages
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    TZ=Etc/GMT+3 \
+    DEBIAN_FRONTEND=noninteractive \
+    LANGUAGE=en_US:en \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
+
+# Install basic OS packages
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     software-properties-common \
     git \
@@ -18,25 +24,45 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
     dirmngr \
     gnupg \
     sudo \
+    locales \
+    npm \
     sqlite3
 
 # [Optional] Uncomment this section to install additional OS packages
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
+# RUN apt-get update && \
 #     apt-get install -y --no-install-recommends \
 #     # list of <packages-here>
 
+# Clean up package cache
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Generate locales for international support
+RUN sed -i "/${LANG}/s/^# //g" /etc/locale.gen && locale-gen
 
 # Create user and directories
 RUN useradd -m --home-dir /home/user -s /bin/bash user && \
     echo "user:user" | chpasswd && \
     usermod -aG sudo user
 
+# Create /opt directories for user-managed packages
+RUN mkdir -p /opt && \
+    chown -R user:user /opt
+
+# Create workspace directory with proper permissions
+RUN mkdir -p /mnt/workspace && \
+    chown -R user:user /mnt/workspace
+
 USER user
 
-COPY --chown=user:user ./workspace /mnt/workspace
-# Fix ownership after copying
-RUN chown -R user:user /mnt/workspace
+# Add global opt bin to PATH
+ENV PATH="/opt/bin:$PATH"
+
+# Configure npm to use /opt/npm for global packages
+RUN npm config set prefix "/opt"
+
+# Install Node.js version manager and upgrade Node.js
+ENV N_PREFIX="/opt"
+RUN npm install -g n && n 20
 
 WORKDIR /mnt/workspace

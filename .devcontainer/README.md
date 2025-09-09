@@ -15,7 +15,7 @@ DevPod implements a sophisticated container configuration system designed around
 Follow this documentation to integrate with dev containers while maintaining organized file structure. The system prioritizes:
 
 - **Persistence Strategy**: User data survives container rebuilds and template updates
-- **Upstream Compatibility**: Configuration remains compatible with future DevPod updates  
+- **Upstream Compatibility**: Configuration remains compatible with future DevPod updates
 - **Modular Design**: Keep dev containers general-purpose, not exclusively AI-focused
 - **Sustainability**: Maintainable and scalable container configurations
 
@@ -28,7 +28,7 @@ AI-specific requirements are documented in their respective directories, ensurin
 # Open in Dev Container (VS Code)
 # Ctrl+Shift+P -> "Dev Containers: Reopen in Container"
 
-# Rebuild container after configuration changes  
+# Rebuild container after configuration changes
 # Ctrl+Shift+P -> "Dev Containers: Rebuild Container"
 
 # Test Docker Compose configurations manually
@@ -37,7 +37,7 @@ docker-compose -f .devcontainer/python-pg.docker-compose.yml up
 
 # Build specific Dockerfile for testing
 docker build -f .devcontainer/ubuntu.Dockerfile -t devpod-ubuntu .
-docker build -f .devcontainer/python-pg.Dockerfile -t devpod-python-pg .
+docker build -f .devcontainer/ubuntu-base.Dockerfile -t devpod-ubuntu-base .
 ```
 
 ### Container Management
@@ -62,16 +62,15 @@ DevPod provides three distinct container configuration approaches:
 Multi-service development environments with orchestrated services:
 
 - **`ubuntu.docker-compose.yml`**: Base Ubuntu environment with custom image
-- **`python-pg.docker-compose.yml`**: Python development with PostgreSQL database
+- **`python-pg.docker-compose.yml`**: Python development with PostgreSQL database (uses ubuntu.Dockerfile)
 - **`ubuntu-base.docker-compose.yml`**: Minimal Ubuntu setup for lightweight development
 - **Custom compositions**: User-defined environments in `.devcontainer/custom/`
 
 #### 2. Custom Dockerfile Builds (`dockerFile`)
 Single-container environments with custom builds:
 
-- **`ubuntu.Dockerfile`**: Ubuntu Noble with Python and development tools
-- **`python-pg.Dockerfile`**: Python-optimized environment with PostgreSQL client
-- **`ubuntu-base.Dockerfile`**: Minimal Ubuntu base configuration
+- **`ubuntu.Dockerfile`**: Ubuntu Noble with Python, development tools, and UV package manager
+- **`ubuntu-base.Dockerfile`**: Minimal Ubuntu base configuration with Node.js 20
 
 #### 3. Public Container Images (`image`)
 Pre-built Microsoft dev container images for fastest startup:
@@ -149,7 +148,8 @@ DevPod implements a three-phase container setup process for proper initializatio
 Runs immediately after container creation to set up the environment:
 ```json
 "onCreateCommand": {
-  "npm-fix": "mkdir -p /tmp/npm/.npm-global && sudo chown -R user:user /usr/local /tmp/npm/.npm-global && npm config set prefix /tmp/npm/.npm-global && export PATH=/tmp/npm/.npm-global/bin:$PATH"
+  // Optional commands during container creation
+  // "sample-command": "echo 'Container created'"
 }
 ```
 
@@ -157,8 +157,9 @@ Runs immediately after container creation to set up the environment:
 Installs AI coding assistants and dependencies:
 ```json
 "postCreateCommand": {
-  "npm-install-claude": "npm install -g @anthropic-ai/claude-code",
-  "npm-install-gemini": "npm install -g @google/gemini-cli"
+  "install-claude": "npm install -g @anthropic-ai/claude-code",
+  "install-gemini": "npm install -g @google/gemini-cli",
+  "install-opencode": "cd ~ && curl -fsSL https://opencode.ai/install | bash"
 }
 ```
 
@@ -166,7 +167,7 @@ Installs AI coding assistants and dependencies:
 Configures the container environment for optimal AI integration:
 ```json
 "remoteEnv": {
-  "PATH": "/tmp/npm/.npm-global/bin:${containerEnv:PATH}"
+  // Environment variables
 }
 ```
 
@@ -182,15 +183,6 @@ The `devcontainer.json.template` provides a comprehensive setup with:
 - **Claude Code Integration**: `ghcr.io/anthropics/devcontainer-features/claude-code:1.0`
 - **Enhanced Shell**: `ghcr.io/devcontainers/features/common-utils:2` with Zsh and Oh My Zsh
 
-#### Port Forwarding (AI Compatibility)
-```json
-"forwardPorts": [
-  // 11434,  // Continue/AI extension compatibility
-  // 1234,   // LM Studio/AI compatibility  
-  // 5272,   // Microsoft AI Toolkit extension
-  // 54112   // CodeGPT/AI extension
-]
-```
 
 ### Environment Selection Examples
 
@@ -208,7 +200,7 @@ The `devcontainer.json.template` provides a comprehensive setup with:
 ```json
 {
   "name": "Ubuntu Development",
-  "dockerComposeFile": "ubuntu.docker-compose.yml", 
+  "dockerComposeFile": "ubuntu.docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/mnt/workspace"
 }
@@ -217,11 +209,10 @@ The `devcontainer.json.template` provides a comprehensive setup with:
 #### Custom Dockerfile Build
 ```json
 {
-  "name": "Custom Python Build",
-  "dockerFile": "python-pg.Dockerfile",
+  "name": "Custom Ubuntu Build",
+  "dockerFile": "ubuntu.Dockerfile",
   "context": ".",
   "workspaceFolder": "/mnt/workspace"
-}
 ```
 
 #### Public Image (Fastest Startup)
@@ -376,9 +367,8 @@ DevPod/
 │   ├── ubuntu.docker-compose.yml           # Ubuntu environment
 │   ├── ubuntu-base.docker-compose.yml      # Minimal Ubuntu environment
 │   ├── python-pg.docker-compose.yml        # Python + PostgreSQL stack
-│   ├── ubuntu.Dockerfile                   # Ubuntu container build
-│   ├── ubuntu-base.Dockerfile              # Minimal Ubuntu build
-│   ├── python-pg.Dockerfile                # Python + PostgreSQL build
+│   ├── ubuntu.Dockerfile                   # Ubuntu container build with Python and UV
+│   ├── ubuntu-base.Dockerfile              # Minimal Ubuntu build with Node.js 20
 │   ├── custom/                             # User custom environments (gitignored)
 │   └── README.md                           # This documentation
 ├── .ai/                                    # AI system-wide defaults (version controlled via upstream)

@@ -13,7 +13,7 @@ services:
   app:
     build:
       context: ..
-      dockerfile: .devcontainer/python-pg.Dockerfile
+      dockerfile: .devcontainer/ubuntu.Dockerfile
 
     volumes:
       - ../workspace:/mnt/workspace/
