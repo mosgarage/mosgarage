@@ -1,0 +1,1 @@
+const express=require('express');const app=express();app.get('/',(r,s)=>s.json({msg:'MosGarage Sample API'}));app.listen(5000,()=>console.log('api'));

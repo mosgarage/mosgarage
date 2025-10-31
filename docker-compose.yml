@@ -1,0 +1,33 @@
+version: "3.9"
+networks:
+  mifi-net:
+    driver: bridge
+  wg-net:
+    external: true
+services:
+  dev-core:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+    container_name: dev-core
+    networks: [mifi-net, wg-net]
+    expose: ["8080"]
+    volumes: ["workspace_data:/workspace","vscode_data:/home/dev/.vscode"]
+    command: /usr/bin/code-server --bind-addr 0.0.0.0:8080 /workspace
+  dashboard:
+    image: nginx:alpine
+    container_name: mosgarage-dashboard
+    networks: [mifi-net, wg-net]
+    volumes: ["./dashboard:/usr/share/nginx/html:ro"]
+  dashboard-api:
+    build: ./dashboard/api
+    container_name: mosgarage-api
+    networks: [mifi-net, wg-net]
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    ports: ["3000:3000"]
+  caddy:
+    image: caddy:2
+    container_name: mosgarage-proxy
+    ports: ["80:80","443:443"]
+    networks: [mifi-net, wg-net]
+volumes:
+  workspace_data:
+  vscode_data:
