@@ -1,0 +1,5 @@
+version: "3.9"
+services:
+  caddy:
+    extra_hosts:
+      - "localhost:host-gateway"

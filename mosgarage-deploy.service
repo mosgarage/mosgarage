@@ -1,0 +1,16 @@
+[Unit]
+Description=MosGarage Auto Deploy Service
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+WorkingDirectory=/opt/mosgarage
+ExecStart=/usr/bin/node /opt/mosgarage/deploy-server.js
+Restart=always
+User=root
+Environment=WEBHOOK_SECRET=mosgarage-secret
+StandardOutput=append:/var/log/mosgarage-deploy.log
+StandardError=append:/var/log/mosgarage-deploy-error.log
+
+[Install]
+WantedBy=multi-user.target

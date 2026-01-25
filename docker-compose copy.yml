@@ -1,0 +1,35 @@
+version: "3.9"
+networks:
+  mosgarage-net:
+    driver: bridge
+services:
+  vscode:
+    image: ghcr.io/coder/code-server:latest
+    container_name: mosgarage-vscode
+    restart: unless-stopped
+    ports: ["8080:8080"]
+    volumes: ["./workspace:/home/coder/project","vscode_data:/home/coder/.local/share/code-server"]
+    environment: ["PASSWORD=mosgarage"]
+    networks: ["mosgarage-net"]
+  dashboard:
+    image: nginx:alpine
+    container_name: mosgarage-dashboard
+    restart: unless-stopped
+    ports: ["8090:80"]
+    volumes: ["./dashboard:/usr/share/nginx/html:ro"]
+    networks: ["mosgarage-net"]
+  dashboard-api:
+    build: ./dashboard/api
+    container_name: mosgarage-api
+    restart: unless-stopped
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    ports: ["3000:3000"]
+    networks: ["mosgarage-net"]
+  sync-agent:
+    build: ./sync-agent
+    container_name: mosgarage-sync
+    restart: unless-stopped
+    ports: ["9001:9001"]
+    networks: ["mosgarage-net"]
+volumes:
+  vscode_data:

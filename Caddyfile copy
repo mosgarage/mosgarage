@@ -1,0 +1,19 @@
+:80, 161.97.132.183, localhost {
+    encode gzip
+    handle_path /vscode* {
+        reverse_proxy http://localhost:8080
+    }
+    handle_path /dashboard* {
+        reverse_proxy http://localhost:8090
+    }
+    handle_path /chat* {
+        reverse_proxy http://localhost:3010
+    }
+    handle_path /api* {
+        reverse_proxy http://localhost:3000
+    }
+    handle {
+        root * /opt/mosgarage/dashboard
+        file_server
+    }
+}
