@@ -1,0 +1,52 @@
+name: Build, Push, and Deploy Docker Image for 2048
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GH_PAT }}" | docker login ghcr.io -u madhucheran --password-stdin
+
+      - name: Build and push the Docker image
+        run: |
+          docker build . --tag ghcr.io/madhucheran/2048-ghcr:latest
+          docker push ghcr.io/madhucheran/2048-ghcr:latest
+
+  deploy:
+    needs: build_and_publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GH_PAT }}" | docker login ghcr.io -u madhucheran --password-stdin
+
+      - name: Pull Docker image
+        run: docker pull ghcr.io/madhucheran/2048-ghcr:latest
+
+      - name: Create a container and extract static files
+        run: |
+          mkdir -p ./public
+          docker run --rm -d --name 2048-container ghcr.io/madhucheran/2048-ghcr:latest
+          sleep 10 # Wait for the container to start
+          docker cp 2048-container:/var/www/html ./public
+          docker stop 2048-container
+          ls -la ./public # List files to ensure index.html is present
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GIT_TOKEN }}
+          publish_dir: ./public/html  # Adjusted path to the html folder
+          publish_branch: gh-pages
