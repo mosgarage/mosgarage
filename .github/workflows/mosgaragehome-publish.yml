@@ -14,12 +14,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Log in to GitHub Container Registry
-        run: echo "${{ secrets.GH_PAT }}" | docker login ghcr.io -u madhucheran --password-stdin
+        run: echo "${{ secrets.GH_PAT }}" | docker login ghcr.io -u mosgarage --password-stdin
 
       - name: Build and push the Docker image
         run: |
-          docker build . --tag ghcr.io/madhucheran/2048-ghcr:latest
-          docker push ghcr.io/madhucheran/2048-ghcr:latest
+          docker build . --tag ghcr.io/mosgarage/mosgarage-home:latest
+          docker push ghcr.io/mosgarage/mosgarage-home:latest
 
   deploy:
     needs: build_and_publish
@@ -30,18 +30,18 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Log in to GitHub Container Registry
-        run: echo "${{ secrets.GH_PAT }}" | docker login ghcr.io -u madhucheran --password-stdin
+        run: echo "${{ secrets.GH_PAT }}" | docker login ghcr.io -u mosgarage --password-stdin
 
       - name: Pull Docker image
-        run: docker pull ghcr.io/madhucheran/2048-ghcr:latest
+        run: docker pull ghcr.io/mosgarage/mosgarage-home:latest
 
       - name: Create a container and extract static files
         run: |
           mkdir -p ./public
-          docker run --rm -d --name 2048-container ghcr.io/madhucheran/2048-ghcr:latest
+          docker run --rm -d --name mosgarage-homer ghcr.io/mosgarage/mosgarage-home:latest
           sleep 10 # Wait for the container to start
-          docker cp 2048-container:/var/www/html ./public
-          docker stop 2048-container
+          docker cp mosgarage-home:/var/www/html ./public
+          docker stop mosgarage-home
           ls -la ./public # List files to ensure index.html is present
 
       - name: Deploy to GitHub Pages
