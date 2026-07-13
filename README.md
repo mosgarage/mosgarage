@@ -1,2 +1,2 @@
-# MosGarage - minimal bundle
+# MosGarage-Home
 See install-mosgarage.sh
